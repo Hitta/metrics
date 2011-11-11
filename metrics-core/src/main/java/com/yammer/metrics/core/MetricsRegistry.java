@@ -432,8 +432,7 @@ public class MetricsRegistry {
      * @param name the name of the metric
      * @param scope the scope of the metric
      */
-    public void removeMetric(Class<?> klass, String name,
-                             String scope) {
+    public void removeMetric(Class<?> klass, String name, String scope) {
         removeMetric(createName(klass, name, scope));
     }
 

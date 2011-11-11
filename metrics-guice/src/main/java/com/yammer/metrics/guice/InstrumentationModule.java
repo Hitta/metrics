@@ -49,4 +49,24 @@ public class InstrumentationModule extends AbstractModule {
     {
         return new MetricsRegistry();
     }
+
+    /**
+     * Override to provide a custom {@link HealthCheckRegistry}
+     * 
+     * @return
+     */
+    protected HealthCheckRegistry createHealthCheckRegistry()
+    {
+        return new HealthCheckRegistry();
+    }
+
+    /**
+     * Override to provide a custom {@link MetricsRegistry}
+     * 
+     * @return
+     */
+    protected MetricsRegistry createMetricsRegistry()
+    {
+        return new MetricsRegistry();
+    }
 }
