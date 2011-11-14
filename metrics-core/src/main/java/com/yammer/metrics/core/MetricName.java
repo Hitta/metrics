@@ -1,5 +1,7 @@
 package com.yammer.metrics.core;
 
+import javax.management.ObjectName;
+
 /**
  * A value class encapsulating a metric's owning class and name.
  */
@@ -51,6 +53,19 @@ public class MetricName {
      * @param scope the scope of the {@link Metric}
      */
     public MetricName(String group, String type, String name, String scope) {
+        this(group, type, name, scope, MetricName.createMBeanName(group, type, name, scope));
+    }
+    
+    /**
+     * Creates a new {@link MetricName} without a scope.
+     *
+     * @param group the group to which the {@link Metric} belongs
+     * @param type the type to which the {@link Metric} belongs
+     * @param name the name of the {@link Metric}
+     * @param scope the scope of the {@link Metric}
+     * @param mbeanName the 'ObjectName', represented as a string, to use when registering the mbean.
+     */
+    public MetricName(String group, String type, String name, String scope, String mbeanName) {
         if (group == null || type == null) {
             throw new IllegalArgumentException("Both group and type need to be specified");
         }
@@ -61,24 +76,9 @@ public class MetricName {
         this.type = type;
         this.name = name;
         this.scope = scope;
-
-        StringBuilder mbeanNameBuilder = new StringBuilder();
-
-        mbeanNameBuilder.append(group);
-        mbeanNameBuilder.append(":type=");
-        mbeanNameBuilder.append(type);
-        if (scope != null) {
-            mbeanNameBuilder.append(",scope=");
-            mbeanNameBuilder.append(scope);
-        }
-        if (name.length() > 0) {
-            mbeanNameBuilder.append(",name=");
-            mbeanNameBuilder.append(name);
-        }
-
-        this.mbeanName = mbeanNameBuilder.toString();
+        this.mbeanName = mbeanName;
     }
-
+    
     /**
      * Returns the group to which the {@link Metric} belongs. For class-based
      * metrics, this will be the package name of the {@link Class} to which the
@@ -150,5 +150,24 @@ public class MetricName {
     @Override
     public String toString() {
         return mbeanName;
+    }
+    
+    
+    private static String createMBeanName(String group, String type, String name, String scope){
+        StringBuilder mbeanNameBuilder = new StringBuilder();
+
+        mbeanNameBuilder.append(group);
+        mbeanNameBuilder.append(":type=");
+        mbeanNameBuilder.append(type);
+        if (scope != null) {
+            mbeanNameBuilder.append(",scope=");
+            mbeanNameBuilder.append(scope);
+        }
+        if (name.length() > 0) {
+            mbeanNameBuilder.append(",name=");
+            mbeanNameBuilder.append(name);
+        }
+        
+        return mbeanNameBuilder.toString();
     }
 }
