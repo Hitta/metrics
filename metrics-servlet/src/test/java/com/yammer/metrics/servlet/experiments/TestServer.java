@@ -12,7 +12,9 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.ThreadPool;
+import org.junit.Ignore;
 
+@Ignore
 public class TestServer {
     private static final CounterMetric COUNTER1 = Metrics.newCounter(TestServer.class, "wah", "doody");
     private static final CounterMetric COUNTER2 = Metrics.newCounter(TestServer.class, "woo");
