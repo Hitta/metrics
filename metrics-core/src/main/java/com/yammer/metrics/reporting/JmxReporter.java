@@ -351,7 +351,6 @@ public class JmxReporter extends AbstractReporter implements MetricsRegistryList
             try {
                 server.unregisterMBean(name);
             } catch (Exception ignored) {
-
             }
         }
         registeredBeans.clear();
