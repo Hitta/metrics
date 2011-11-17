@@ -1,6 +1,10 @@
 package com.yammer.metrics.core;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.yammer.metrics.reporting.RenderAttributes;
+import com.yammer.metrics.reporting.RenderableReporter;
 
 /**
  * An incrementing and decrementing counter metric.
@@ -54,5 +58,11 @@ public class CounterMetric implements Metric {
      */
     public void clear() {
         count.set(0);
+    }
+
+    @Override
+    public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+    {
+        reporter.renderCounter(this, attributes);
     }
 }

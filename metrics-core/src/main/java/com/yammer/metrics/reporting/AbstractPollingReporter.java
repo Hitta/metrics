@@ -1,13 +1,18 @@
 package com.yammer.metrics.reporting;
 
-import com.yammer.metrics.core.MetricsRegistry;
-import com.yammer.metrics.util.NamedThreadFactory;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractPollingReporter extends AbstractReporter implements Runnable {
+import com.yammer.metrics.core.CounterMetric;
+import com.yammer.metrics.core.GaugeMetric;
+import com.yammer.metrics.core.HistogramMetric;
+import com.yammer.metrics.core.Metered;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.core.TimerMetric;
+import com.yammer.metrics.util.NamedThreadFactory;
+
+public abstract class AbstractPollingReporter extends AbstractReporter implements Runnable, RenderableReporter {
     private final ScheduledExecutorService executor;
 
     protected AbstractPollingReporter(MetricsRegistry registry, String name) {

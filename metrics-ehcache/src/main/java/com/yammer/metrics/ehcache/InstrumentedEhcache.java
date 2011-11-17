@@ -1,9 +1,19 @@
 package com.yammer.metrics.ehcache;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.GaugeMetric;
-import com.yammer.metrics.core.TimerMetric;
-import net.sf.ehcache.*;
+import java.beans.PropertyChangeListener;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import net.sf.ehcache.CacheException;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Ehcache;
+import net.sf.ehcache.Element;
+import net.sf.ehcache.Statistics;
+import net.sf.ehcache.Status;
 import net.sf.ehcache.bootstrap.BootstrapCacheLoader;
 import net.sf.ehcache.config.CacheConfiguration;
 import net.sf.ehcache.event.RegisteredEventListeners;
@@ -20,12 +30,11 @@ import net.sf.ehcache.transaction.manager.TransactionManagerLookup;
 import net.sf.ehcache.writer.CacheWriter;
 import net.sf.ehcache.writer.CacheWriterManager;
 
-import java.beans.PropertyChangeListener;
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.GaugeMetric;
+import com.yammer.metrics.core.TimerMetric;
+import com.yammer.metrics.reporting.RenderAttributes;
+import com.yammer.metrics.reporting.RenderableReporter;
 
 /**
  * An instrumented {@link Ehcache} instance.
@@ -137,12 +146,24 @@ public class InstrumentedEhcache implements Ehcache {
             public Long value() {
                 return cache.getStatistics().getCacheHits();
             }
+
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(cache.getClass(), "in-memory-hits", cache.getName(), new GaugeMetric<Long>() {
             @Override
             public Long value() {
                 return cache.getStatistics().getInMemoryHits();
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -151,12 +172,24 @@ public class InstrumentedEhcache implements Ehcache {
             public Long value() {
                 return cache.getStatistics().getOffHeapHits();
             }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(cache.getClass(), "on-disk-hits", cache.getName(), new GaugeMetric<Long>() {
             @Override
             public Long value() {
                 return cache.getStatistics().getOnDiskHits();
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -165,12 +198,24 @@ public class InstrumentedEhcache implements Ehcache {
             public Long value() {
                 return cache.getStatistics().getCacheMisses();
             }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(cache.getClass(), "in-memory-misses", cache.getName(), new GaugeMetric<Long>() {
             @Override
             public Long value() {
                 return cache.getStatistics().getInMemoryMisses();
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -179,12 +224,24 @@ public class InstrumentedEhcache implements Ehcache {
             public Long value() {
                 return cache.getStatistics().getOffHeapMisses();
             }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(cache.getClass(), "on-disk-misses", cache.getName(), new GaugeMetric<Long>() {
             @Override
             public Long value() {
                 return cache.getStatistics().getOnDiskMisses();
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -193,12 +250,24 @@ public class InstrumentedEhcache implements Ehcache {
             public Long value() {
                 return cache.getStatistics().getObjectCount();
             }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(cache.getClass(), "in-memory-objects", cache.getName(), new GaugeMetric<Long>() {
             @Override
             public Long value() {
                 return cache.getStatistics().getMemoryStoreObjectCount();
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -207,12 +276,24 @@ public class InstrumentedEhcache implements Ehcache {
             public Long value() {
                 return cache.getStatistics().getOffHeapStoreObjectCount();
             }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(cache.getClass(), "on-disk-objects", cache.getName(), new GaugeMetric<Long>() {
             @Override
             public Long value() {
                 return cache.getStatistics().getDiskStoreObjectCount();
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -221,12 +302,24 @@ public class InstrumentedEhcache implements Ehcache {
             public Float value() {
                 return cache.getStatistics().getAverageGetTime();
             }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(cache.getClass(), "mean-search-time", cache.getName(), new GaugeMetric<Long>() {
             @Override
             public Long value() {
                 return cache.getStatistics().getAverageSearchTime();
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -235,12 +328,24 @@ public class InstrumentedEhcache implements Ehcache {
             public Long value() {
                 return cache.getStatistics().getEvictionCount();
             }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(cache.getClass(), "searches-per-second", cache.getName(), new GaugeMetric<Long>() {
             @Override
             public Long value() {
                 return cache.getStatistics().getSearchesPerSecond();
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -249,12 +354,24 @@ public class InstrumentedEhcache implements Ehcache {
             public Long value() {
                 return cache.getStatistics().getWriterQueueSize();
             }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(cache.getClass(), "accuracy", cache.getName(), new GaugeMetric<String>() {
             @Override
             public String value() {
                 return cache.getStatistics().getStatisticsAccuracyDescription();
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 

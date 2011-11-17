@@ -1,13 +1,17 @@
 package com.yammer.metrics.httpclient;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.GaugeMetric;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.impl.conn.SchemeRegistryFactory;
 import org.apache.http.impl.conn.tsccm.ConnPoolByRoute;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 
-import java.util.concurrent.TimeUnit;
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.GaugeMetric;
+import com.yammer.metrics.reporting.RenderAttributes;
+import com.yammer.metrics.reporting.RenderableReporter;
 
 /**
  * A {@link org.apache.http.conn.ClientConnectionManager} which monitors the number of open
@@ -33,6 +37,12 @@ public class InstrumentedClientConnManager extends ThreadSafeClientConnManager {
                              public Integer value() {
                                  // this acquires a lock on the connection pool; remove if contention sucks
                                  return getConnectionsInPool();
+                             }
+                             
+                             @Override
+                             public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+                             {
+                                 reporter.renderGauge(this, attributes);
                              }
                          });
     }

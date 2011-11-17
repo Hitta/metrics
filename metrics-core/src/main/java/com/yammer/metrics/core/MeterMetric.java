@@ -1,13 +1,16 @@
 package com.yammer.metrics.core;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.stats.EWMA;
-import com.yammer.metrics.util.Utils;
-
+import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.reporting.RenderAttributes;
+import com.yammer.metrics.reporting.RenderableReporter;
+import com.yammer.metrics.stats.EWMA;
+import com.yammer.metrics.util.Utils;
 
 /**
  * A meter metric which measures mean throughput and one-, five-, and
@@ -141,5 +144,11 @@ public class MeterMetric implements Metered {
 
     void stop() {
         future.cancel(false);
+    }
+
+    @Override
+    public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+    {
+        reporter.renderMeter(this, attributes);
     }
 }

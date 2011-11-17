@@ -1,5 +1,7 @@
 package com.yammer.metrics.core;
 
+import com.yammer.metrics.reporting.AbstractPollingReporter;
+
 /**
  * A gauge metric is an instantaneous reading of a particular value. To
  * instrument a queue's depth, for example:<br>

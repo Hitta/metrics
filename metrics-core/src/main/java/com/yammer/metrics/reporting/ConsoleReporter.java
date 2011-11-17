@@ -1,10 +1,5 @@
 package com.yammer.metrics.reporting;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.*;
-import com.yammer.metrics.util.MetricPredicate;
-import com.yammer.metrics.util.Utils;
-
 import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -12,6 +7,17 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.CounterMetric;
+import com.yammer.metrics.core.GaugeMetric;
+import com.yammer.metrics.core.HistogramMetric;
+import com.yammer.metrics.core.Metered;
+import com.yammer.metrics.core.Metric;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.core.TimerMetric;
+import com.yammer.metrics.util.MetricPredicate;
+import com.yammer.metrics.util.Utils;
 
 /**
  * A simple reporters which prints out application metrics to a
@@ -87,19 +93,11 @@ public class ConsoleReporter extends AbstractPollingReporter {
                     out.print("  ");
                     out.print(subEntry.getKey());
                     out.println(':');
-
+                    
                     final Metric metric = subEntry.getValue();
-                    if (metric instanceof GaugeMetric<?>) {
-                        printGauge((GaugeMetric<?>) metric);
-                    } else if (metric instanceof CounterMetric) {
-                        printCounter((CounterMetric) metric);
-                    } else if (metric instanceof HistogramMetric) {
-                        printHistogram((HistogramMetric) metric);
-                    } else if (metric instanceof MeterMetric) {
-                        printMetered((MeterMetric) metric);
-                    } else if (metric instanceof TimerMetric) {
-                        printTimer((TimerMetric) metric);
-                    }
+                    
+                    metric.renderMetric(this, null);
+                    
                     out.println();
                 }
                 out.println();
@@ -111,58 +109,7 @@ public class ConsoleReporter extends AbstractPollingReporter {
         }
     }
 
-    private void printGauge(GaugeMetric<?> gauge) {
-        out.print("    value = ");
-        out.println(gauge.value());
-    }
-
-    private void printCounter(CounterMetric counter) {
-        out.print("    count = ");
-        out.println(counter.count());
-    }
-
-    private void printMetered(Metered meter) {
-        final String unit = abbrev(meter.rateUnit());
-        out.printf("             count = %d\n", meter.count());
-        out.printf("         mean rate = %2.2f %s/%s\n", meter.meanRate(), meter.eventType(), unit);
-        out.printf("     1-minute rate = %2.2f %s/%s\n", meter.oneMinuteRate(), meter.eventType(), unit);
-        out.printf("     5-minute rate = %2.2f %s/%s\n", meter.fiveMinuteRate(), meter.eventType(), unit);
-        out.printf("    15-minute rate = %2.2f %s/%s\n", meter.fifteenMinuteRate(), meter.eventType(), unit);
-    }
-
-    private void printHistogram(HistogramMetric histogram) {
-        final double[] percentiles = histogram.percentiles(0.5, 0.75, 0.95, 0.98, 0.99, 0.999);
-        out.printf("               min = %2.2f\n", histogram.min());
-        out.printf("               max = %2.2f\n", histogram.max());
-        out.printf("              mean = %2.2f\n", histogram.mean());
-        out.printf("            stddev = %2.2f\n", histogram.stdDev());
-        out.printf("            median = %2.2f\n", percentiles[0]);
-        out.printf("              75%% <= %2.2f\n", percentiles[1]);
-        out.printf("              95%% <= %2.2f\n", percentiles[2]);
-        out.printf("              98%% <= %2.2f\n", percentiles[3]);
-        out.printf("              99%% <= %2.2f\n", percentiles[4]);
-        out.printf("            99.9%% <= %2.2f\n", percentiles[5]);
-    }
-
-    private void printTimer(TimerMetric timer) {
-        printMetered(timer);
-
-        final String durationUnit = abbrev(timer.durationUnit());
-
-        final double[] percentiles = timer.percentiles(0.5, 0.75, 0.95, 0.98, 0.99, 0.999);
-        out.printf("               min = %2.2f%s\n", timer.min(), durationUnit);
-        out.printf("               max = %2.2f%s\n", timer.max(), durationUnit);
-        out.printf("              mean = %2.2f%s\n", timer.mean(), durationUnit);
-        out.printf("            stddev = %2.2f%s\n", timer.stdDev(), durationUnit);
-        out.printf("            median = %2.2f%s\n", percentiles[0], durationUnit);
-        out.printf("              75%% <= %2.2f%s\n", percentiles[1], durationUnit);
-        out.printf("              95%% <= %2.2f%s\n", percentiles[2], durationUnit);
-        out.printf("              98%% <= %2.2f%s\n", percentiles[3], durationUnit);
-        out.printf("              99%% <= %2.2f%s\n", percentiles[4], durationUnit);
-        out.printf("            99.9%% <= %2.2f%s\n", percentiles[5], durationUnit);
-    }
-
-    private String abbrev(TimeUnit unit) {
+    private static String abbrev(TimeUnit unit) {
         switch (unit) {
             case NANOSECONDS:
                 return "ns";
@@ -180,5 +127,66 @@ public class ConsoleReporter extends AbstractPollingReporter {
                 return "d";
         }
         throw new IllegalArgumentException("Unrecognized TimeUnit: " + unit);
+    }
+
+    @Override
+    public void renderCounter(CounterMetric counterMetric, RenderAttributes attributes)
+    {
+        out.print("    count = ");
+        out.println(counterMetric.count());
+    }
+
+    @Override
+    public void renderHistogram(HistogramMetric histogramMetric, RenderAttributes attributes)
+    {
+        final double[] percentiles = histogramMetric.percentiles(0.5, 0.75, 0.95, 0.98, 0.99, 0.999);
+        out.printf("               min = %2.2f\n", histogramMetric.min());
+        out.printf("               max = %2.2f\n", histogramMetric.max());
+        out.printf("              mean = %2.2f\n", histogramMetric.mean());
+        out.printf("            stddev = %2.2f\n", histogramMetric.stdDev());
+        out.printf("            median = %2.2f\n", percentiles[0]);
+        out.printf("              75%% <= %2.2f\n", percentiles[1]);
+        out.printf("              95%% <= %2.2f\n", percentiles[2]);
+        out.printf("              98%% <= %2.2f\n", percentiles[3]);
+        out.printf("              99%% <= %2.2f\n", percentiles[4]);
+        out.printf("            99.9%% <= %2.2f\n", percentiles[5]);
+    }
+
+    @Override
+    public void renderGauge(GaugeMetric<?> gauge, RenderAttributes attributes)
+    {
+        out.print("    value = ");
+        out.println(gauge.value());
+    }
+
+    @Override
+    public void renderMeter(Metered meterMetric, RenderAttributes attributes)
+    {
+        final String unit = abbrev(meterMetric.rateUnit());
+        out.printf("             count = %d\n", meterMetric.count());
+        out.printf("         mean rate = %2.2f %s/%s\n", meterMetric.meanRate(), meterMetric.eventType(), unit);
+        out.printf("     1-minute rate = %2.2f %s/%s\n", meterMetric.oneMinuteRate(), meterMetric.eventType(), unit);
+        out.printf("     5-minute rate = %2.2f %s/%s\n", meterMetric.fiveMinuteRate(), meterMetric.eventType(), unit);
+        out.printf("    15-minute rate = %2.2f %s/%s\n", meterMetric.fifteenMinuteRate(), meterMetric.eventType(), unit);
+    }
+
+    @Override
+    public void renderTimer(TimerMetric timerMetric, RenderAttributes attributes)
+    {
+        renderMeter(timerMetric, attributes);
+
+        final String durationUnit = abbrev(timerMetric.durationUnit());
+
+        final double[] percentiles = timerMetric.percentiles(0.5, 0.75, 0.95, 0.98, 0.99, 0.999);
+        out.printf("               min = %2.2f%s\n", timerMetric.min(), durationUnit);
+        out.printf("               max = %2.2f%s\n", timerMetric.max(), durationUnit);
+        out.printf("              mean = %2.2f%s\n", timerMetric.mean(), durationUnit);
+        out.printf("            stddev = %2.2f%s\n", timerMetric.stdDev(), durationUnit);
+        out.printf("            median = %2.2f%s\n", percentiles[0], durationUnit);
+        out.printf("              75%% <= %2.2f%s\n", percentiles[1], durationUnit);
+        out.printf("              95%% <= %2.2f%s\n", percentiles[2], durationUnit);
+        out.printf("              98%% <= %2.2f%s\n", percentiles[3], durationUnit);
+        out.printf("              99%% <= %2.2f%s\n", percentiles[4], durationUnit);
+        out.printf("            99.9%% <= %2.2f%s\n", percentiles[5], durationUnit);
     }
 }

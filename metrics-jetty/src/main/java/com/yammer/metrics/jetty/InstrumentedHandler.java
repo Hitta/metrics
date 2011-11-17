@@ -1,10 +1,21 @@
 package com.yammer.metrics.jetty;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.CounterMetric;
-import com.yammer.metrics.core.GaugeMetric;
-import com.yammer.metrics.core.MeterMetric;
-import com.yammer.metrics.core.TimerMetric;
+import static org.eclipse.jetty.http.HttpMethods.CONNECT;
+import static org.eclipse.jetty.http.HttpMethods.DELETE;
+import static org.eclipse.jetty.http.HttpMethods.GET;
+import static org.eclipse.jetty.http.HttpMethods.HEAD;
+import static org.eclipse.jetty.http.HttpMethods.OPTIONS;
+import static org.eclipse.jetty.http.HttpMethods.POST;
+import static org.eclipse.jetty.http.HttpMethods.PUT;
+import static org.eclipse.jetty.http.HttpMethods.TRACE;
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.eclipse.jetty.continuation.Continuation;
 import org.eclipse.jetty.continuation.ContinuationListener;
 import org.eclipse.jetty.server.AsyncContinuation;
@@ -12,13 +23,13 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-
-import static org.eclipse.jetty.http.HttpMethods.*;
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.CounterMetric;
+import com.yammer.metrics.core.GaugeMetric;
+import com.yammer.metrics.core.MeterMetric;
+import com.yammer.metrics.core.TimerMetric;
+import com.yammer.metrics.reporting.RenderAttributes;
+import com.yammer.metrics.reporting.RenderableReporter;
 
 /**
  * A Jetty {@link Handler} which records various metrics about an underlying
@@ -78,6 +89,12 @@ public class InstrumentedHandler extends HandlerWrapper {
                 }
                 return 0.0;
             }
+
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(underlying.getClass(), "percent-4xx-5m", new GaugeMetric<Double>() {
@@ -87,6 +104,12 @@ public class InstrumentedHandler extends HandlerWrapper {
                     return responses[3].fiveMinuteRate() / requests.fiveMinuteRate();
                 }
                 return 0.0;
+            }
+
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -98,6 +121,12 @@ public class InstrumentedHandler extends HandlerWrapper {
                 }
                 return 0.0;
             }
+
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(underlying.getClass(), "percent-5xx-1m", new GaugeMetric<Double>() {
@@ -107,6 +136,12 @@ public class InstrumentedHandler extends HandlerWrapper {
                     return responses[4].oneMinuteRate() / requests.oneMinuteRate();
                 }
                 return 0.0;
+            }
+
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 
@@ -118,6 +153,12 @@ public class InstrumentedHandler extends HandlerWrapper {
                 }
                 return 0.0;
             }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
+            }
         });
 
         Metrics.newGauge(underlying.getClass(), "percent-5xx-15m", new GaugeMetric<Double>() {
@@ -127,6 +168,12 @@ public class InstrumentedHandler extends HandlerWrapper {
                     return responses[4].fifteenMinuteRate() / requests.fifteenMinuteRate();
                 }
                 return 0.0;
+            }
+            
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
 

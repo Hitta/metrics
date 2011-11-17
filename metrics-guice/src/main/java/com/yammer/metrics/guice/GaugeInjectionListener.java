@@ -1,11 +1,14 @@
 package com.yammer.metrics.guice;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
+
 import com.google.inject.TypeLiteral;
 import com.google.inject.spi.InjectionListener;
-import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.core.GaugeMetric;
-
-import java.lang.reflect.Method;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.reporting.RenderAttributes;
+import com.yammer.metrics.reporting.RenderableReporter;
 
 /**
  * An injection listener which creates a gauge for the declaring class with the
@@ -35,6 +38,12 @@ public class GaugeInjectionListener<I> implements InjectionListener<I> {
                 } catch (Exception e) {
                     return new RuntimeException(e);
                 }
+            }
+
+            @Override
+            public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+            {
+                reporter.renderGauge(this, attributes);
             }
         });
     }

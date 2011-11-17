@@ -3,7 +3,6 @@ package com.yammer.metrics.reporting;
 import com.yammer.metrics.core.HealthCheckRegistry;
 import com.yammer.metrics.HealthChecks;
 import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.core.*;
 import com.yammer.metrics.core.HealthCheck.Result;
 import com.yammer.metrics.util.Utils;
@@ -29,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.yammer.metrics.core.VirtualMachineMetrics.*;
 
-public class MetricsServlet extends HttpServlet {
+public class MetricsServlet extends HttpServlet implements RenderableReporter {
     public static final String ATTR_NAME_METRICS_REGISTRY = MetricsServlet.class.getSimpleName() + ":" + MetricsRegistry.class.getSimpleName();
     public static final String ATTR_NAME_HEALTHCHECK_REGISTRY = MetricsServlet.class.getSimpleName() + ":" + HealthCheckRegistry.class.getSimpleName();
 
@@ -257,7 +256,8 @@ public class MetricsServlet extends HttpServlet {
                 json.writeStartObject();
                 {
                     for (Entry<String, Metric> subEntry : entry.getValue().entrySet()) {
-                        writeMetric(json, subEntry.getKey(), subEntry.getValue(), showFullSamples);
+                        json.writeFieldName(subEntry.getKey());
+                        subEntry.getValue().renderMetric(this, new ServletReporterAttributes(json, showFullSamples));
                     }
                 }
                 json.writeEndObject();
@@ -265,74 +265,7 @@ public class MetricsServlet extends HttpServlet {
         }
     }
 
-    private void writeMetric(JsonGenerator json, String key, Metric metric, boolean showFullSamples) throws IOException {
-        if (metric instanceof GaugeMetric<?>) {
-            json.writeFieldName(key);
-            writeGauge(json, (GaugeMetric<?>) metric);
-        } else if (metric instanceof CounterMetric) {
-            json.writeFieldName(key);
-            writeCounter(json, (CounterMetric) metric);
-        } else if (metric instanceof MeterMetric) {
-            json.writeFieldName(key);
-            writeMeter(json, (MeterMetric) metric);
-        } else if (metric instanceof HistogramMetric) {
-            json.writeFieldName(key);
-            writeHistogram(json, (HistogramMetric) metric, showFullSamples);
-        } else if (metric instanceof TimerMetric) {
-            json.writeFieldName(key);
-            writeTimer(json, (TimerMetric) metric, showFullSamples);
-        }
-    }
-
-    private void writeHistogram(JsonGenerator json, HistogramMetric histogram, boolean showFullSamples) throws IOException {
-        json.writeStartObject();
-        {
-            json.writeStringField("type", "histogram");
-            json.writeNumberField("min", histogram.min());
-            json.writeNumberField("max", histogram.max());
-            json.writeNumberField("mean", histogram.mean());
-            json.writeNumberField("std_dev", histogram.stdDev());
-
-            final double[] percentiles = histogram.percentiles(0.5, 0.75, 0.95, 0.98, 0.99, 0.999);
-            json.writeNumberField("median", percentiles[0]);
-            json.writeNumberField("p75", percentiles[1]);
-            json.writeNumberField("p95", percentiles[2]);
-            json.writeNumberField("p98", percentiles[3]);
-            json.writeNumberField("p99", percentiles[4]);
-            json.writeNumberField("p999", percentiles[5]);
-
-            if (showFullSamples) {
-                json.writeObjectField("values", histogram.values());
-            }
-        }
-        json.writeEndObject();
-    }
-
-    private void writeCounter(JsonGenerator json, CounterMetric counter) throws IOException {
-        json.writeStartObject();
-        {
-            json.writeStringField("type", "counter");
-            json.writeNumberField("count", counter.count());
-        }
-        json.writeEndObject();
-    }
-
-    private void writeGauge(JsonGenerator json, GaugeMetric<?> gauge) throws IOException {
-        json.writeStartObject();
-        {
-            json.writeStringField("type", "gauge");
-            json.writeFieldName("value");
-            try {
-                final Object value = gauge.value();
-                json.writeObject(value);
-            } catch (Exception e) {
-                json.writeString("error reading gauge: " + e.getMessage());
-            }
-        }
-        json.writeEndObject();
-    }
-
-    private void writeVmMetrics(JsonGenerator json, boolean showFullSamples) throws IOException {
+    private static void writeVmMetrics(JsonGenerator json, boolean showFullSamples) throws IOException {
         json.writeFieldName("jvm");
         json.writeStartObject();
         {
@@ -395,60 +328,142 @@ public class MetricsServlet extends HttpServlet {
         json.writeEndObject();
     }
 
-    private void writeMeter(JsonGenerator json, MeterMetric meter) throws IOException {
-        json.writeStartObject();
+
+    @Override
+    public void renderCounter(CounterMetric counterMetric, RenderAttributes attributes) throws IOException
+    {
+        ServletReporterAttributes servletAttributes = (ServletReporterAttributes)attributes;
+        
+        servletAttributes.json.writeStartObject();
         {
-            json.writeStringField("type", "meter");
-            json.writeStringField("event_type", meter.eventType());
-            json.writeStringField("unit", meter.rateUnit().toString().toLowerCase());
-            json.writeNumberField("count", meter.count());
-            json.writeNumberField("mean", meter.meanRate());
-            json.writeNumberField("m1", meter.oneMinuteRate());
-            json.writeNumberField("m5", meter.fiveMinuteRate());
-            json.writeNumberField("m15", meter.fifteenMinuteRate());
+            servletAttributes.json.writeStringField("type", "counter");
+            servletAttributes.json.writeNumberField("count", counterMetric.count());
         }
-        json.writeEndObject();
+        servletAttributes.json.writeEndObject();
     }
 
-    private void writeTimer(JsonGenerator json, TimerMetric timer, boolean showFullSamples) throws IOException {
-        json.writeStartObject();
+    @Override
+    public void renderHistogram(HistogramMetric histogramMetric, RenderAttributes attributes) throws IOException
+    {
+        ServletReporterAttributes servletAttributes = (ServletReporterAttributes)attributes;
+
+        servletAttributes.json.writeStartObject();
         {
-            json.writeStringField("type", "timer");
-            json.writeFieldName("duration");
-            json.writeStartObject();
+            servletAttributes.json.writeStringField("type", "histogram");
+            servletAttributes.json.writeNumberField("min", histogramMetric.min());
+            servletAttributes.json.writeNumberField("max", histogramMetric.max());
+            servletAttributes.json.writeNumberField("mean", histogramMetric.mean());
+            servletAttributes.json.writeNumberField("std_dev", histogramMetric.stdDev());
+
+            final double[] percentiles = histogramMetric.percentiles(0.5, 0.75, 0.95, 0.98, 0.99, 0.999);
+            servletAttributes.json.writeNumberField("median", percentiles[0]);
+            servletAttributes.json.writeNumberField("p75", percentiles[1]);
+            servletAttributes.json.writeNumberField("p95", percentiles[2]);
+            servletAttributes.json.writeNumberField("p98", percentiles[3]);
+            servletAttributes.json.writeNumberField("p99", percentiles[4]);
+            servletAttributes.json.writeNumberField("p999", percentiles[5]);
+
+            if (servletAttributes.showFullSamples) {
+                servletAttributes.json.writeObjectField("values", histogramMetric.values());
+            }
+        }
+        servletAttributes.json.writeEndObject();
+    }
+
+    @Override
+    public void renderGauge(GaugeMetric<?> gaugeMetric, RenderAttributes attributes) throws IOException
+    {
+        ServletReporterAttributes servletAttributes = (ServletReporterAttributes)attributes;
+
+        servletAttributes.json.writeStartObject();
+        {
+            servletAttributes.json.writeStringField("type", "gauge");
+            servletAttributes.json.writeFieldName("value");
+            try {
+                final Object value = gaugeMetric.value();
+                servletAttributes.json.writeObject(value);
+            } catch (Exception e) {
+                servletAttributes.json.writeString("error reading gauge: " + e.getMessage());
+            }
+        }
+        servletAttributes.json.writeEndObject();
+    }
+
+    @Override
+    public void renderMeter(Metered meterMetric, RenderAttributes attributes) throws IOException
+    {
+        ServletReporterAttributes servletAttributes = (ServletReporterAttributes)attributes;
+
+        servletAttributes.json.writeStartObject();
+        {
+            servletAttributes.json.writeStringField("type", "meter");
+            servletAttributes.json.writeStringField("event_type", meterMetric.eventType());
+            servletAttributes.json.writeStringField("unit", meterMetric.rateUnit().toString().toLowerCase());
+            servletAttributes.json.writeNumberField("count", meterMetric.count());
+            servletAttributes.json.writeNumberField("mean", meterMetric.meanRate());
+            servletAttributes.json.writeNumberField("m1", meterMetric.oneMinuteRate());
+            servletAttributes.json.writeNumberField("m5", meterMetric.fiveMinuteRate());
+            servletAttributes.json.writeNumberField("m15", meterMetric.fifteenMinuteRate());
+        }
+        servletAttributes.json.writeEndObject();
+    }
+
+    @Override
+    public void renderTimer(TimerMetric timerMetric, RenderAttributes attributes) throws IOException
+    {
+        ServletReporterAttributes servletAttributes = (ServletReporterAttributes)attributes;
+
+        servletAttributes.json.writeStartObject();
+        {
+            servletAttributes.json.writeStringField("type", "timer");
+            servletAttributes.json.writeFieldName("duration");
+            servletAttributes.json.writeStartObject();
             {
-                json.writeStringField("unit", timer.durationUnit().toString().toLowerCase());
-                json.writeNumberField("min", timer.min());
-                json.writeNumberField("max", timer.max());
-                json.writeNumberField("mean", timer.mean());
-                json.writeNumberField("std_dev", timer.stdDev());
+                servletAttributes.json.writeStringField("unit", timerMetric.durationUnit().toString().toLowerCase());
+                servletAttributes.json.writeNumberField("min", timerMetric.min());
+                servletAttributes.json.writeNumberField("max", timerMetric.max());
+                servletAttributes.json.writeNumberField("mean", timerMetric.mean());
+                servletAttributes.json.writeNumberField("std_dev", timerMetric.stdDev());
 
-                final double[] percentiles = timer.percentiles(0.5, 0.75, 0.95, 0.98, 0.99, 0.999);
-                json.writeNumberField("median", percentiles[0]);
-                json.writeNumberField("p75", percentiles[1]);
-                json.writeNumberField("p95", percentiles[2]);
-                json.writeNumberField("p98", percentiles[3]);
-                json.writeNumberField("p99", percentiles[4]);
-                json.writeNumberField("p999", percentiles[5]);
+                final double[] percentiles = timerMetric.percentiles(0.5, 0.75, 0.95, 0.98, 0.99, 0.999);
+                servletAttributes.json.writeNumberField("median", percentiles[0]);
+                servletAttributes.json.writeNumberField("p75", percentiles[1]);
+                servletAttributes.json.writeNumberField("p95", percentiles[2]);
+                servletAttributes.json.writeNumberField("p98", percentiles[3]);
+                servletAttributes.json.writeNumberField("p99", percentiles[4]);
+                servletAttributes.json.writeNumberField("p999", percentiles[5]);
 
-                if (showFullSamples) {
-                    json.writeObjectField("values", timer.values());
+                if (servletAttributes.showFullSamples) {
+                    servletAttributes.json.writeObjectField("values", timerMetric.values());
                 }
             }
-            json.writeEndObject();
+            servletAttributes.json.writeEndObject();
 
-            json.writeFieldName("rate");
-            json.writeStartObject();
+            servletAttributes.json.writeFieldName("rate");
+            servletAttributes.json.writeStartObject();
             {
-                json.writeStringField("unit", timer.rateUnit().toString().toLowerCase());
-                json.writeNumberField("count", timer.count());
-                json.writeNumberField("mean", timer.meanRate());
-                json.writeNumberField("m1", timer.oneMinuteRate());
-                json.writeNumberField("m5", timer.fiveMinuteRate());
-                json.writeNumberField("m15", timer.fifteenMinuteRate());
+                servletAttributes.json.writeStringField("unit", timerMetric.rateUnit().toString().toLowerCase());
+                servletAttributes.json.writeNumberField("count", timerMetric.count());
+                servletAttributes.json.writeNumberField("mean", timerMetric.meanRate());
+                servletAttributes.json.writeNumberField("m1", timerMetric.oneMinuteRate());
+                servletAttributes.json.writeNumberField("m5", timerMetric.fiveMinuteRate());
+                servletAttributes.json.writeNumberField("m15", timerMetric.fifteenMinuteRate());
             }
-            json.writeEndObject();
+            servletAttributes.json.writeEndObject();
         }
-        json.writeEndObject();
+        servletAttributes.json.writeEndObject();
+    }
+    
+    private class ServletReporterAttributes implements RenderAttributes
+    {
+        final JsonGenerator json;
+        final boolean showFullSamples;
+
+        public ServletReporterAttributes(JsonGenerator json, boolean showFullSamples)
+        {
+            this.json = json;
+            this.showFullSamples = showFullSamples;
+            
+        }
     }
 }

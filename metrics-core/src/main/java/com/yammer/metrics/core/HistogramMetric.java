@@ -1,8 +1,7 @@
 package com.yammer.metrics.core;
 
-import com.yammer.metrics.stats.ExponentiallyDecayingSample;
-import com.yammer.metrics.stats.Sample;
-import com.yammer.metrics.stats.UniformSample;
+import static java.lang.Math.floor;
+import static java.lang.Math.sqrt;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,8 +10,11 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static java.lang.Math.floor;
-import static java.lang.Math.sqrt;
+import com.yammer.metrics.reporting.RenderAttributes;
+import com.yammer.metrics.reporting.RenderableReporter;
+import com.yammer.metrics.stats.ExponentiallyDecayingSample;
+import com.yammer.metrics.stats.Sample;
+import com.yammer.metrics.stats.UniformSample;
 
 /**
  * A metric which calculates the distribution of a value.
@@ -269,5 +271,11 @@ public class HistogramMetric implements Metric {
             }
             done = variance.compareAndSet(oldValues, newValues);
         }
+    }
+
+    @Override
+    public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+    {
+        reporter.renderHistogram(this, attributes);
     }
 }

@@ -1,19 +1,5 @@
 package com.yammer.metrics.reporting;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.*;
-import com.yammer.metrics.core.VirtualMachineMetrics.*;
-import com.yammer.metrics.util.MetricPredicate;
-import com.yammer.metrics.util.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.*;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import static com.yammer.metrics.core.VirtualMachineMetrics.daemonThreadCount;
 import static com.yammer.metrics.core.VirtualMachineMetrics.fileDescriptorUsage;
 import static com.yammer.metrics.core.VirtualMachineMetrics.garbageCollectors;
@@ -23,6 +9,32 @@ import static com.yammer.metrics.core.VirtualMachineMetrics.nonHeapUsage;
 import static com.yammer.metrics.core.VirtualMachineMetrics.threadCount;
 import static com.yammer.metrics.core.VirtualMachineMetrics.threadStatePercentages;
 import static com.yammer.metrics.core.VirtualMachineMetrics.uptime;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.CounterMetric;
+import com.yammer.metrics.core.GaugeMetric;
+import com.yammer.metrics.core.HistogramMetric;
+import com.yammer.metrics.core.MeterMetric;
+import com.yammer.metrics.core.Metered;
+import com.yammer.metrics.core.Metric;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.core.TimerMetric;
+import com.yammer.metrics.core.VirtualMachineMetrics.GarbageCollector;
+import com.yammer.metrics.util.MetricPredicate;
+import com.yammer.metrics.util.Utils;
 
 /**
  * A simple reporter which sends out application metrics to a
@@ -378,5 +390,40 @@ public class GangliaReporter extends AbstractPollingReporter {
             LOG.error("Unable to get local gangliaHost name: ", e);
             return "unknown";
         }
+    }
+
+    @Override
+    public void renderCounter(CounterMetric counterMetric, RenderAttributes attributes) throws IOException
+    {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void renderHistogram(HistogramMetric histogramMetric, RenderAttributes attributes) throws IOException
+    {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void renderGauge(GaugeMetric<?> gaugeMetric, RenderAttributes attributes) throws IOException
+    {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void renderMeter(Metered meterMetric, RenderAttributes attributes) throws IOException
+    {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void renderTimer(TimerMetric timerMetric, RenderAttributes attributes) throws IOException
+    {
+        // TODO Auto-generated method stub
+        
     }
 }

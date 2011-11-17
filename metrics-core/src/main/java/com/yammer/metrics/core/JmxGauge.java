@@ -1,7 +1,14 @@
 package com.yammer.metrics.core;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import javax.management.*;
+
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
+import com.yammer.metrics.reporting.RenderAttributes;
+import com.yammer.metrics.reporting.RenderableReporter;
 
 /**
  * A gauge which exposes an attribute of a JMX MBean.
@@ -23,5 +30,11 @@ public class JmxGauge implements GaugeMetric<Object> {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    @Override
+    public void renderMetric(RenderableReporter reporter, RenderAttributes attributes) throws IOException
+    {
+        reporter.renderGauge(this, attributes);
     }
 }
